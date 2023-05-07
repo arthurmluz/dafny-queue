@@ -12,27 +12,28 @@ class {:autocontracts} CircularQueue
     ghost var   len : nat;
 
     ghost predicate Valid() {
-        start >= 0       &&
-        start <= len     &&
-        end   >= 0       &&
-        end   >= start   &&
-        len   >= 0       &&
-        len   >= end     &&
-        a.Length == len &&
-        list == a[0..end]
+        start >= 0         &&
+        end   >= 0         &&
+        end   >= start     &&
+        len   >= 0         &&
+        len   == end-start &&
+        a.Length >= end    &&
+        list == a[start..end] &&
+        |list| == end-start
     }
 
     constructor()
-        ensures list == []
+        ensures list  == []
+        ensures len   == 0
         ensures start == 0
-        ensures end == 0
+        ensures end   == 0
     {
         a     := new nat[2];
         start := 0;
         end   := 0;
 
         list := [];
-        len  := 2;
+        len  := 0;
     }
 
     method insert(e: nat)
@@ -50,29 +51,28 @@ class {:autocontracts} CircularQueue
                     b[i] := a[i];
                 }
                 a := b;
-                len := end+2;
             }
                 
             a[end] := e;
             end := end +1;
 
             list := list + [e];
+            len  := len + 1;
         }
-
-
    
     method pop() returns (e:nat)
         requires end - start > 0
         ensures start == old(start+1)
-        ensures e     == list[old(start)]
+        ensures e     == old(list[0])
         ensures end   == old(end)
-        ensures list == old(list)
+        ensures list == old(list)[1..]
         {
             e     := a[start];
             start := start +1;
+            list := list [1..];
+            len  := len -1;
         }
 
-    
     method has(e:nat) returns (r : bool)
         requires isEmpty() == false
         ensures r == true  ==> exists i :: start <= i < end &&  a[i] == e 
@@ -96,7 +96,13 @@ class {:autocontracts} CircularQueue
                 i := i + 1;
             }
         }
-
+    
+    method count() returns (r : nat)
+        ensures r == (end-start)
+        ensures r == len
+        {
+            r := end-start;
+        }
         
     function isEmpty(): bool
         ensures isEmpty() == false  ==> end - start > 0
@@ -105,58 +111,39 @@ class {:autocontracts} CircularQueue
             end <= start
         }
 
-
-    // method concat(queue : CircularQueue) returns (r : CircularQueue)
-    //     requires queue.end - queue.start > 0
-    //     ensures r.list[..] == (list[..] + queue.list[..])
-    //     ensures r.end == end + (queue.end - queue.end)
-    //     // garanties that this queue didnt change
-    //     ensures list == old(list) && end == old(end) && start == old(start)
-    //     ensures queue.list == old(queue.list) && queue.end == old(queue.end) && queue.start == old(queue.start)
-    //     {
-    //         r := new CircularQueue();
-    //         var i := start;
-    //         var j := 0;
-    //         while i < end
-    //             invariant start <= i <= end
-    //             decreases end-i
-    //         {
-    //             r.insert(a[i]);
-    //             i := i + 1;
-    //             j := j + 1;
-    //         }
-
-    //         assert r.list == a[start..end];
-    //         i := queue.start;
-    //         // while i < queue.end
-    //             // invariant queue.start <= i <= queue.end
-    //         // {
-    //             // r.insert(queue.a[i]);
-    //         // }
-    //     }
 }
+
 
 method main(){
     var c := new CircularQueue();
     assert c.list == [];
     c.insert(0);
-    assert c.list[c.start..c.end] == [0];
+    assert c.list[..] == [0];
+    assert c.a[c.start..c.end] == [0];
     assert c.end == 1;
     assert c.list[c.start] == 0;
+    assert c.len == 1;
+
     c.insert(2);
-    assert c.list[c.start..c.end] == [0,2];
+    assert c.list[..] == [0,2];
+    assert c.a[c.start..c.end] == [0,2];
     assert c.end == 2;
+    assert c.len == 2;
+
     c.insert(3);
-    assert c.list[c.start..c.end] == [0,2,3];
+    assert c.list[..] == [0,2,3];
+    assert c.a[c.start..c.end] == [0,2,3];
     assert c.end == 3;
     assert c.start == 0;
-    assert c.list[c.start] == 0;
+    assert c.len == 3;
+
     var e := c.pop();
     assert e == 0;
+    assert c.len == 2;
     assert c.end == 3;
     assert c.start == 1;
-    assert c.list[c.start] == 2;
-    assert c.list[c.start..c.end] == [2,3];
+    assert c.a[c.start..c.end] == [2,3];
+    assert c.list[..] == [2,3];
 
     var vazia := c.isEmpty();
     assert c.start == 1;
@@ -167,14 +154,16 @@ method main(){
     assert e == 2;
     assert c.end == 3;
     assert c.start == 2;
-    assert c.list[c.start] == 3;
-    assert c.list[c.start..c.end] == [3];
+    assert c.a[c.start] == 3;
+    assert c.a[c.start..c.end] == [3];
+    assert c.list[..] == [3];
 
     e := c.pop();
     assert e == 3;
     assert c.end == 3;
     assert c.start == 3;
-    assert c.list[c.start..c.end] == [];
+    assert c.a[c.start..c.end] == [];
+    assert c.list[..] == [];
 
     vazia := c.isEmpty();
     assert vazia == true;
@@ -186,11 +175,12 @@ method main(){
     c.insert(9);
     assert c.start == 3;
     assert c.end == 8;
-    assert c.list[c.start..c.end] == [0,2,3,4,9];
+    assert c.a[c.start..c.end] == [0,2,3,4,9];
+    assert c.list[..] == [0,2,3,4,9];
 
     var f := c.has(3);
     assert c.start == 3;
-    assert c.list[5] == 3;
+    assert c.a[5] == 3;
     assert c.end == 8;
 
     assert f == true;
@@ -198,5 +188,14 @@ method main(){
     f := c.has(213);
     assert f == false;
 
+    var qtd := c.count();
+    assert qtd == 5;
 
+    c.insert(213);
+    qtd := c.count();
+    assert qtd == 6;
+
+    e := c.pop();
+    qtd := c.count();
+    assert qtd == 5;
 }
