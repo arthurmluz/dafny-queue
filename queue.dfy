@@ -15,6 +15,7 @@ class {:autocontracts} CircularQueue
         start >= 0         &&
         end   >= 0         &&
         end   >= start     &&
+        start <= end       &&
         len   >= 0         &&
         len   == end-start &&
         a.Length >= end    &&
@@ -39,6 +40,7 @@ class {:autocontracts} CircularQueue
     method insert(e: nat)
         ensures list == old(list) + [e]
         ensures end == old(end+1)
+        ensures len == old(len) +1
         ensures start == old(start)
         {
             // if our list is out of space, make it bigger
@@ -97,11 +99,11 @@ class {:autocontracts} CircularQueue
             }
         }
     
-    method count() returns (r : nat)
+    method count() returns (r: nat)
         ensures r == (end-start)
         ensures r == len
         {
-            r := end-start;
+           r := end-start;
         }
         
     function isEmpty(): bool
@@ -110,9 +112,50 @@ class {:autocontracts} CircularQueue
         {
             end <= start
         }
-
 }
 
+method concat(a : CircularQueue, b : CircularQueue) returns (r : CircularQueue)
+    requires a.len > 0
+    requires b.len > 0
+    requires a.Valid() && b.Valid()
+    ensures  a.Valid() && b.Valid()
+    ensures fresh(r)
+    ensures r.list[..] == a.list[..] + b.list[..]
+    ensures r.len == a.len + b.len
+    // garanties that original queues didnt change
+    ensures a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len)
+    ensures b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len)
+    {
+        r := new CircularQueue();
+        assert r.len == 0;
+        assert r.start == 0;
+        assert r.end == 0;
+
+        var i := a.start;
+        while i < a.end
+            decreases a.end - i
+            invariant a.start <= i <= a.end
+            invariant forall k :: 0 <= k < (a.start-i) ==> r.a[k] == a.a[a.start+k]
+            invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) 
+            invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) 
+        {
+            r.insert(a.a[i]);
+            i := i + 1;
+        }
+
+        i := b.start;
+        while i < b.end
+            decreases b.end - i
+            invariant b.start <= i <= b.end
+            invariant forall k :: r.end <= k < (b.start-i) ==> r.a[k] == b.a[b.start+k]
+            invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) 
+            invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) 
+        {
+            r.insert(b.a[i]);
+            i := i + 1;
+        }
+        assert r.list == a.list + b.list;
+    }
 
 method main(){
     var c := new CircularQueue();
