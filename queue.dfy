@@ -115,8 +115,8 @@ class {:autocontracts} CircularQueue
             end <= start
         }
     
-    // Tentei fazer nao ser estatico, estatico, só sequencias ao invés de filas
-    // nao consigo achar a causa desse erro de clausula de contexto
+    // Tentamos fazer nao ser estatico, estatico, só sequencias ao invés de filas
+    // nao conseguimos achar a causa desse erro de clausula de contexto
     static method concat(a : CircularQueue, b : CircularQueue) returns (r : CircularQueue)
        requires a.len > 0
        requires b.len > 0
