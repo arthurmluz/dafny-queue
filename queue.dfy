@@ -1,4 +1,4 @@
-// Arthur M. Luz e Nicolle Lumertz
+/ Arthur M. Luz e Nicolle Lumertz
 // 2023/01
 class {:autocontracts} CircularQueue
 {
@@ -44,76 +44,76 @@ class {:autocontracts} CircularQueue
         ensures end == old(end+1)
         ensures len == old(len) +1
         ensures start == old(start)
+    {
+        // if our list is out of space, make it bigger
+        if end == a.Length
         {
-            // if our list is out of space, make it bigger
-            if end == a.Length
-             {
-                var b := new nat[end+2];
-                // clones our list to b
-                forall i | 0 <= i < end
-                {
-                    b[i] := a[i];
-                }
-                a := b;
+            var b := new nat[end+2];
+            // clones our list to b
+            forall i | 0 <= i < end
+            {
+                b[i] := a[i];
             }
-                
-            a[end] := e;
-            end := end +1;
-
-            list := list + [e];
-            len  := len + 1;
+            a := b;
         }
+            
+        a[end] := e;
+        end := end + 1;
+
+        list := list + [e];
+        len  := len + 1;
+    }
    
     method pop() returns (e:nat)
-        requires end - start > 0
+        requires !isEmpty()
         ensures start == old(start+1)
         ensures e     == old(list[0])
         ensures end   == old(end)
         ensures list == old(list)[1..]
-        {
-            e     := a[start];
-            start := start +1;
-            list := list [1..];
-            len  := len -1;
-        }
+    {
+        e     := a[start];
+        start := start +1;
+        list := list [1..];
+        len  := len -1;
+    }
 
     method has(e:nat) returns (r : bool)
-        requires isEmpty() == false
+        requires !isEmpty()
         ensures r == true  ==> exists i :: start <= i < end &&  a[i] == e 
         ensures r == false ==> forall j :: start <= j < end ==> a[j] != e 
         ensures list == old(list)
         ensures start == old(start)
         ensures end == old(end)
+    {
+        r := false;
+        var i := start;
+        while i < end 
+            invariant start <= i <= end
+            invariant forall k :: start <= k < i ==> a[k] != e
+            invariant r == true ==> a[i] == e && a[i] in a[start..end]
+            decreases end-i
         {
-            r := false;
-            var i := start;
-            while i < end 
-                invariant start <= i <= end
-                invariant forall k :: start <= k < i ==> a[k] != e
-                invariant r == true ==> a[i] == e && a[i] in a[start..end]
-                decreases end-i
-            {
-                if a[i] == e {
-                    r := true;
-                    break;
-                }
-                i := i + 1;
+            if a[i] == e {
+                r := true;
+                break;
             }
+            i := i + 1;
         }
+    }
     
     method count() returns (r: nat)
         ensures r == (end-start)
         ensures r == len
-        {
-           r := end-start;
-        }
+    {
+        r := end-start;
+    }
         
     function isEmpty(): bool
         ensures isEmpty() == false  ==> end - start > 0
         ensures isEmpty() == true ==> end - start == 0
-        {
-            end <= start
-        }
+    {
+        end <= start
+    }
     
     // Tentamos fazer nao ser estatico, estatico, só sequencias ao invés de filas
     // nao conseguimos achar a causa desse erro de clausula de contexto
@@ -128,46 +128,46 @@ class {:autocontracts} CircularQueue
        // garanties that original queues didnt change
        ensures unchanged(a)
        ensures unchanged(b)
-       {
-           r := new CircularQueue();
-           assert r.len == 0;
-           assert r.start == 0;
-           assert r.end == 0;
+    {
+        r := new CircularQueue();
+        assert r.len == 0;
+        assert r.start == 0;
+        assert r.end == 0;
 
-           var i := a.start;
-           assert a.start < a.a.Length;
-           while i < a.end
-               decreases a.end - i
-               invariant a.start <= i <= a.end
-               invariant forall k :: 0 <= k < (a.start-i) ==> r.a[k] == a.a[a.start+k]
-               //invariant unchanged(a)
-               //invariant unchanged(b)
-               invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) && a.a.Length == old(a.a.Length)
-               invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) && b.a.Length == old(b.a.Length)
-           {
-               r.insert(a.a[i]);
-               assert r.a[..] == a.a[..i];
-               i := i + 1;
-           }
-           assert a.start < a.a.Length;
-        //    assert r.len == a.len; // descomentar essa linha faz o laço quebrar
-           assert r.a[..] == a.a[a.start..a.end];
+        var i := a.start;
+        assert a.start < a.a.Length;
+        while i < a.end
+            decreases a.end - i
+            invariant a.start <= i <= a.end
+            invariant forall k :: 0 <= k < (a.start-i) ==> r.a[k] == a.a[a.start+k]
+            //invariant unchanged(a)
+            //invariant unchanged(b)
+            invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) && a.a.Length == old(a.a.Length)
+            invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) && b.a.Length == old(b.a.Length)
+        {
+            r.insert(a.a[i]);
+            assert r.a[..] == a.a[..i];
+            i := i + 1;
+        }
+        assert a.start < a.a.Length;
+    //    assert r.len == a.len; // descomentar essa linha faz o laço quebrar
+        assert r.a[..] == a.a[a.start..a.end];
 
-           i := b.start;
-           while i < b.end
-               decreases b.end - i
-               invariant b.start <= i <= b.end
-               invariant forall k :: r.end <= k < (b.start-i) ==> r.a[k] == b.a[b.start+k]
-               //invariant unchanged(a)
-               //invariant unchanged(b)
+        i := b.start;
+        while i < b.end
+            decreases b.end - i
+            invariant b.start <= i <= b.end
+            invariant forall k :: r.end <= k < (b.start-i) ==> r.a[k] == b.a[b.start+k]
+            //invariant unchanged(a)
+            //invariant unchanged(b)
                                                                                                                         // descomentar essas linha abaixo causa o laço de cima a dar erro
-               invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) // && a.a.Length == old(a.a.Length)
-               invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) && b.a.Length == old(b.a.Length)
-           {
-               r.insert(b.a[i]);
-               i := i + 1;
-           }
-       }
+            invariant a.list == old(a.list) && a.end == old(a.end) && a.start == old(a.start) && a.len == old(a.len) // && a.a.Length == old(a.a.Length)
+            invariant b.list == old(b.list) && b.end == old(b.end) && b.start == old(b.start) && b.len == old(b.len) && b.a.Length == old(b.a.Length)
+        {
+            r.insert(b.a[i]);
+            i := i + 1;
+        }
+    }
 }
 
 method main(){
