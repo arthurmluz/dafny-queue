@@ -1,16 +1,16 @@
-/ Arthur M. Luz e Nicolle Lumertz
+// Arthur M. Luz e Nicolle Lumertz
 // 2023/01
 class {:autocontracts} CircularQueue
 {
 
     // implementation
-    var a    : array<nat>;
+    var a    : array<int>;
     var start: nat;
     var end  : nat;
 
 
     //abstraction
-    ghost var   list: seq<nat>;
+    ghost var   list: seq<int>;
     ghost var   len : nat;
 
     ghost predicate Valid() {
@@ -31,7 +31,7 @@ class {:autocontracts} CircularQueue
         ensures start == 0
         ensures end   == 0
     {
-        a     := new nat[2];
+        a     := new int[2];
         start := 0;
         end   := 0;
 
@@ -39,7 +39,7 @@ class {:autocontracts} CircularQueue
         len  := 0;
     }
 
-    method insert(e: nat)
+    method insert(e: int)
         ensures list == old(list) + [e]
         ensures end == old(end+1)
         ensures len == old(len) +1
@@ -48,7 +48,7 @@ class {:autocontracts} CircularQueue
         // if our list is out of space, make it bigger
         if end == a.Length
         {
-            var b := new nat[end+2];
+            var b := new int[end+2];
             // clones our list to b
             forall i | 0 <= i < end
             {
@@ -64,7 +64,7 @@ class {:autocontracts} CircularQueue
         len  := len + 1;
     }
    
-    method pop() returns (e:nat)
+    method pop() returns (e:int)
         requires !isEmpty()
         ensures start == old(start+1)
         ensures e     == old(list[0])
@@ -77,10 +77,11 @@ class {:autocontracts} CircularQueue
         len  := len -1;
     }
 
-    method has(e:nat) returns (r : bool)
+    method has(e:int) returns (r : bool)
         requires !isEmpty()
-        ensures r == true  ==> exists i :: start <= i < end &&  a[i] == e 
-        ensures r == false ==> forall j :: start <= j < end ==> a[j] != e 
+        ensures r == (e in list)
+        //ensures r == true  ==> exists i :: start <= i < end &&  a[i] == e 
+        //ensures r == false ==> forall j :: start <= j < end ==> a[j] != e 
         ensures list == old(list)
         ensures start == old(start)
         ensures end == old(end)
@@ -244,7 +245,7 @@ method main(){
 
     assert f == true;
 
-    f := c.has(213);
+    f := c.has(-1);
     assert f == false;
 
     qtd := c.count();
